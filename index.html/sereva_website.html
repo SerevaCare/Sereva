@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sereva — Find a Doctor Who Gets It</title>
+<meta name="description" content="Sereva connects patients with minority physicians, multilingual providers, and LGBTQ+-affirming doctors. Care that honors who you are.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --red: #C8553D;
+    --red-light: #E8694F;
+    --dark: #1A1109;
+    --warm-dark: #2C1F14;
+    --cream: #FAF6F1;
+    --warm-white: #FFF9F5;
+    --sand: #F0E8DF;
+    --mid: #8C6E5D;
+    --text: #3D2B1F;
+    --muted: #9B8478;
+    --border: #E8DDD5;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ─── NOISE TEXTURE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 5%;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(250, 246, 241, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    text-decoration: none;
+  }
+
+  .nav-logo-word {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: -0.02em;
+  }
+
+  .nav-logo-pronun {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--red); }
+
+  .nav-cta {
+    background: var(--red);
+    color: white !important;
+    padding: 0.5rem 1.25rem;
+    border-radius: 100px;
+    font-weight: 600 !important;
+    transition: background 0.2s !important;
+  }
+
+  .nav-cta:hover { background: var(--red-light) !important; color: white !important; }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    background: var(--dark);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 120px 5% 80px;
+    overflow: hidden;
+  }
+
+  .hero-bg-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(120px, 20vw, 280px);
+    font-weight: 900;
+    color: rgba(255,255,255,0.025);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: -0.05em;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.8rem, 7vw, 6rem);
+    font-weight: 700;
+    color: white;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    max-width: 800px;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.35s forwards;
+  }
+
+  .hero-headline em {
+    font-style: italic;
+    color: #F4A261;
+  }
+
+  .hero-sub {
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+    color: rgba(255,255,255,0.55);
+    max-width: 520px;
+    line-height: 1.65;
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.5s forwards;
+  }
+
+  .hero-search {
+    display: flex;
+    gap: 0;
+    max-width: 520px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    opacity: 0;
+    animation: fadeUp 0.8s 0.65s forwards;
+  }
+
+  .hero-search input {
+    flex: 1;
+    padding: 1rem 1.25rem;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    background: white;
+    color: var(--dark);
+  }
+
+  .hero-search input::placeholder { color: #AAA; }
+
+  .hero-search button {
+    padding: 1rem 1.5rem;
+    background: var(--red);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+
+  .hero-search button:hover { background: var(--red-light); }
+
+  .hero-stats {
+    display: flex;
+    gap: 3rem;
+    margin-top: 4rem;
+    padding-top: 3rem;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+
+  .hero-stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+  }
+
+  .hero-stat-label {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ─── SECTION SHARED ─── */
+  section { padding: 100px 5%; }
+
+  .section-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    max-width: 600px;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-title em { font-style: italic; color: var(--red); }
+
+  .section-body {
+    font-size: 1.05rem;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 560px;
+    font-weight: 300;
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .how {
+    background: var(--warm-white);
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem 6rem;
+    margin-top: 5rem;
+    align-items: start;
+  }
+
+  .how-intro { grid-column: 1; }
+
+  .how-steps {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .how-step {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.75rem 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .how-step:last-child { border-bottom: none; }
+
+  .how-step-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--sand);
+    line-height: 1;
+    min-width: 56px;
+    transition: color 0.3s;
+  }
+
+  .how-step:hover .how-step-num { color: var(--red); }
+
+  .how-step-content h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 0.4rem;
+  }
+
+  .how-step-content p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* ─── DOCTOR CARDS ─── */
+  .doctors { background: var(--cream); }
+
+  .doctors-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .filter-bar {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    padding: 0.4rem 1rem;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: white;
+    color: var(--mid);
+    transition: all 0.2s;
+  }
+
+  .filter-chip.active, .filter-chip:hover {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+  }
+
+  .doctors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .doctor-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .doctor-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+    border-color: var(--red);
+  }
+
+  .doctor-card-img {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    position: relative;
+  }
+
+  .doctor-card-body { padding: 1.25rem; }
+
+  .doctor-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 2px;
+  }
+
+  .doctor-specialty {
+    font-size: 0.8rem;
+    color: var(--red);
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+  }
+
+  .doctor-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+  }
+
+  .doctor-tag {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+    background: var(--sand);
+    color: var(--mid);
+    font-weight: 500;
+  }
+
+  .doctor-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .doctor-location {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .doctor-rating {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--dark);
+  }
+
+  /* ─── CAREGUIDE SECTION ─── */
+  .careguide {
+    background: var(--dark);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .careguide::before {
+    content: 'CareGuide™';
+    position: absolute;
+    bottom: -40px;
+    right: -20px;
+    font-family: 'Playfair Display', serif;
+    font-size: 180px;
+    font-weight: 900;
+    color: rgba(255,255,255,0.03);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .careguide-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+  }
+
+  .careguide-intro .section-title { color: white; max-width: none; }
+  .careguide-intro .section-body { color: rgba(255,255,255,0.45); max-width: none; }
+
+  .careguide-plans {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .plan-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .plan-card:hover, .plan-card.featured {
+    background: rgba(200, 85, 61, 0.12);
+    border-color: rgba(200, 85, 61, 0.4);
+  }
+
+  .plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .plan-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+  }
+
+  .plan-price {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: white;
+  }
+
+  .plan-price span {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 400;
+  }
+
+  .plan-desc {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  .plan-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--red);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ─── ABOUT ─── */
+  .about {
+    background: var(--warm-white);
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+  }
+
+  .about-visual {
+    position: relative;
+  }
+
+  .about-card {
+    background: var(--dark);
+    border-radius: 24px;
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .about-card::before {
+    content: '✦';
+    position: absolute;
+    top: -20px;
+    right: 20px;
+    font-size: 160px;
+    color: rgba(200, 85, 61, 0.08);
+    line-height: 1;
+  }
+
+  .about-quote {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-style: italic;
+    color: white;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .about-quote-attr {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 500;
+  }
+
+  .about-accent-card {
+    background: var(--red);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .about-accent-icon { font-size: 1.5rem; }
+
+  .about-accent-text h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.25rem;
+  }
+
+  .about-accent-text p {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  .about-content .section-title { max-width: none; }
+  .about-content .section-body { max-width: none; }
+
+  .about-name-box {
+    background: var(--sand);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    border-left: 3px solid var(--red);
+  }
+
+  .about-name-box h4 {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 0.75rem;
+  }
+
+  .about-name-pronunciation {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark);
+    letter-spacing: -0.01em;
+  }
+
+  .about-name-phonetic {
+    font-size: 0.95rem;
+    color: var(--red);
+    font-weight: 500;
+    margin-top: 0.25rem;
+    letter-spacing: 0.05em;
+  }
+
+  .about-name-meaning {
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-top: 0.6rem;
+    line-height: 1.55;
+    font-weight: 300;
+  }
+
+  /* ─── NEWSLETTER ─── */
+  .newsletter {
+    background: var(--red);
+    padding: 80px 5%;
+    text-align: center;
+  }
+
+  .newsletter h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .newsletter p {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 2rem;
+    font-weight: 300;
+  }
+
+  .newsletter-form {
+    display: flex;
+    max-width: 460px;
+    margin: 0 auto;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+
+  .newsletter-form input {
+    flex: 1;
+    padding: 0.9rem 1.25rem;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    background: white;
+  }
+
+  .newsletter-form button {
+    padding: 0.9rem 1.5rem;
+    background: var(--dark);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+
+  .newsletter-form button:hover { background: var(--warm-dark); }
+
+  /* ─── FOR PROVIDERS ─── */
+  .providers {
+    background: var(--cream);
+  }
+
+  .providers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+  }
+
+  .provider-benefits {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .provider-benefit {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.25rem;
+    background: white;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+
+  .provider-benefit:hover {
+    border-color: var(--red);
+    transform: translateX(4px);
+  }
+
+  .provider-benefit-icon {
+    font-size: 1.5rem;
+    min-width: 2rem;
+  }
+
+  .provider-benefit h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin-bottom: 0.2rem;
+  }
+
+  .provider-benefit p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+
+  /* ─── CTA BUTTON ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 100px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .btn-primary {
+    background: var(--red);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--red-light);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(200, 85, 61, 0.35);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--dark);
+    border: 1.5px solid var(--border);
+  }
+
+  .btn-outline:hover {
+    border-color: var(--dark);
+    transform: translateY(-1px);
+  }
+
+  .btn-white {
+    background: white;
+    color: var(--red);
+  }
+
+  .btn-white:hover {
+    background: var(--cream);
+    transform: translateY(-1px);
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--dark);
+    padding: 60px 5% 40px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .footer-brand .nav-logo-word { color: white; font-size: 1.8rem; }
+  .footer-brand .nav-logo-pronun { color: rgba(255,255,255,0.3); font-size: 0.75rem; }
+
+  .footer-tagline {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.3);
+    margin-top: 0.75rem;
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .footer-col h4 {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 1rem;
+  }
+
+  .footer-col ul { list-style: none; }
+
+  .footer-col ul li {
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-col ul li a {
+    text-decoration: none;
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.35);
+    transition: color 0.2s;
+    font-weight: 300;
+  }
+
+  .footer-col ul li a:hover { color: white; }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-bottom p { font-size: 0.78rem; }
+
+  .footer-bottom-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+  }
+
+  .footer-bottom-links a {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.3);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-bottom-links a:hover { color: white; }
+
+  /* ─── APP BANNER ─── */
+  .app-banner {
+    background: linear-gradient(135deg, var(--warm-dark) 0%, #1A1109 100%);
+    padding: 60px 5%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .app-banner-text h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: white;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  .app-banner-text p {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 300;
+  }
+
+  .app-badges {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .app-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .app-badge:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .app-badge-icon { font-size: 1.5rem; }
+
+  .app-badge-text { text-align: left; }
+
+  .app-badge-text .soon {
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+  }
+
+  .app-badge-text .store {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* ─── MOBILE ─── */
+  @media (max-width: 768px) {
+    nav { padding: 0 4%; }
+    .nav-links { display: none; }
+    .hero { padding: 100px 4% 60px; }
+    .hero-stats { gap: 1.5rem; flex-wrap: wrap; }
+    .how-grid, .careguide-grid, .about-grid, .providers-grid { grid-template-columns: 1fr; gap: 3rem; }
+    .how-steps { grid-column: 1; }
+    .how-intro { grid-column: 1; }
+    .doctors-header { flex-direction: column; align-items: flex-start; }
+    .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .app-banner { flex-direction: column; text-align: center; }
+    .app-badges { justify-content: center; }
+    section { padding: 70px 4%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <span class="nav-logo-word">Sereva</span>
+    <span class="nav-logo-pronun">suh-REE-vah</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#doctors">Find a Doctor</a></li>
+    <li><a href="#careguide">CareGuide™</a></li>
+    <li><a href="#providers">For Providers</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#newsletter" class="nav-cta">Join Waitlist</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg-text" aria-hidden="true">Sereva</div>
+  <p class="hero-eyebrow">✦ Care That Honors Who You Are</p>
+  <h1 class="hero-headline">Find a Doctor Who <em>Gets It</em></h1>
+  <p class="hero-sub">Search thousands of minority physicians, multilingual providers, and LGBTQ+-affirming doctors who reflect your culture and understand your experience.</p>
+  <div class="hero-search">
+    <input type="text" id="hero-search-input" placeholder="City, state, specialty, or language…" onkeydown="if(event.key==='Enter') runSearch()">
+    <button onclick="runSearch()">Search Doctors →</button>
+  </div>
+  <div class="hero-stats">
+    <div>
+      <div class="hero-stat-num">57M+</div>
+      <div class="hero-stat-label">Americans seeking cultural care</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">20+</div>
+      <div class="hero-stat-label">States at launch</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">Free</div>
+      <div class="hero-stat-label">To search &amp; sign up</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="how-grid">
+    <div class="how-intro reveal">
+      <p class="section-eyebrow">How It Works</p>
+      <h2 class="section-title">Finding the right doctor shouldn't feel like a <em>search</em></h2>
+      <p class="section-body">Sereva is built around a simple idea: you deserve a physician who understands not just your symptoms, but your background, your language, and your life. We make that search easy, fast, and free.</p>
+      <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="#doctors" class="btn btn-primary">Find a Doctor →</a>
+        <a href="#careguide" class="btn btn-outline">Learn About CareGuide™</a>
+      </div>
+    </div>
+    <div class="how-steps reveal">
+      <div class="how-step">
+        <div class="how-step-num">01</div>
+        <div class="how-step-content">
+          <h3>Tell us what you're looking for</h3>
+          <p>Search by specialty, language, location, or cultural background. Filter by accepting new patients, telehealth availability, or affirming care focus.</p>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">02</div>
+        <div class="how-step-content">
+          <h3>Browse verified physician profiles</h3>
+          <p>Every listing includes credentials, languages spoken, cultural specializations, and patient reviews from people who share your background.</p>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">03</div>
+        <div class="how-step-content">
+          <h3>Book with confidence</h3>
+          <p>Connect directly with a physician who was listed because they chose to be found by you. No middlemen, no insurance phone trees.</p>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="how-step-num">04</div>
+        <div class="how-step-content">
+          <h3>Add a CareGuide™ advocate</h3>
+          <p>Upgrade to CareGuide™ and have a dedicated patient advocate in your corner — before, during, and after every appointment.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOCTOR CARDS -->
+<section class="doctors" id="doctors">
+  <div class="doctors-header reveal">
+    <div>
+      <p class="section-eyebrow">Featured Physicians</p>
+      <h2 class="section-title" style="margin-bottom: 0;">Doctors who <em>chose</em> to be found</h2>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-chip active" onclick="filterDoctors('all')">All</div>
+      <div class="filter-chip" onclick="filterDoctors('Primary Care / Family Medicine')">Primary Care</div>
+      <div class="filter-chip" onclick="filterDoctors('Psychiatry / Mental Health')">Mental Health</div>
+      <div class="filter-chip" onclick="filterDoctors('Obstetrics & Gynecology')">OB/GYN</div>
+      <div class="filter-chip" onclick="filterDoctors('telehealth')">Telehealth</div>
+    </div>
+  </div>
+
+  <!-- Search bar in directory -->
+  <div style="margin-bottom:2rem;" class="reveal">
+    <div style="display:flex;gap:0;max-width:480px;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.07);border:1px solid var(--border);">
+      <input type="text" id="directory-search" placeholder="Search by name, city, specialty, language…"
+        style="flex:1;padding:0.85rem 1.1rem;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:0.9rem;color:var(--dark);background:white;"
+        onkeydown="if(event.key==='Enter') searchDirectory()">
+      <button onclick="searchDirectory()" style="padding:0.85rem 1.25rem;background:var(--red);color:white;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;white-space:nowrap;">Search</button>
+    </div>
+  </div>
+
+  <div id="doctors-grid" class="doctors-grid reveal">
+    <!-- Loaded from Supabase -->
+    <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);">
+      <div style="font-size:1.5rem;margin-bottom:0.5rem;">🔍</div>
+      <p>Loading physicians…</p>
+    </div>
+  </div>
+
+  <div id="doctors-empty" style="display:none;text-align:center;padding:3rem;color:var(--muted);">
+    <div style="font-size:2rem;margin-bottom:0.75rem;">🩺</div>
+    <p style="font-weight:500;color:var(--dark);margin-bottom:0.4rem;">No results found</p>
+    <p style="font-size:0.88rem;">Try a different search term or filter.</p>
+  </div>
+
+  <div style="text-align: center; margin-top: 3rem;" class="reveal">
+    <button onclick="loadMoreDoctors()" id="load-more-btn" class="btn btn-primary" style="display:none;">Load More Physicians →</button>
+  </div>
+</section>
+
+<!-- CAREGUIDE -->
+<section class="careguide" id="careguide">
+  <div class="careguide-grid">
+    <div class="careguide-intro reveal">
+      <p class="section-eyebrow">CareGuide™</p>
+      <h2 class="section-title" style="color: white; max-width: none;">Your personal advocate in the healthcare system</h2>
+      <p class="section-body" style="color: rgba(255,255,255,0.45); max-width: none; margin-bottom: 2rem;">A CareGuide is a trained patient advocate — fluent in your language and your culture — who helps you navigate the healthcare system in real time. They join your calls, interpret your options, follow up on prescriptions, and make sure you're never alone in a waiting room again.</p>
+      <a href="#" class="btn btn-white">Learn About CareGuide™ →</a>
+    </div>
+    <div class="careguide-plans reveal">
+      <div class="plan-card">
+        <div class="plan-header">
+          <div class="plan-name">Essential</div>
+          <div class="plan-price">$29<span>/mo</span></div>
+        </div>
+        <div class="plan-desc">2 on-call assists per month. Welcome session within 48 hours. Perfect for getting started.</div>
+      </div>
+      <div class="plan-card featured">
+        <div class="plan-badge">Most Popular</div>
+        <div class="plan-header">
+          <div class="plan-name">Guardian</div>
+          <div class="plan-price">$59<span>/mo</span></div>
+        </div>
+        <div class="plan-desc">Unlimited on-call support. Real-time video join for ER visits. 30-minute response SLA. Your dedicated CareGuide on call.</div>
+      </div>
+      <div class="plan-card">
+        <div class="plan-header">
+          <div class="plan-name">Family</div>
+          <div class="plan-price">$99<span>/mo</span></div>
+        </div>
+        <div class="plan-desc">Up to 5 family members. One household CareGuide who knows your whole family's history and needs.</div>
+      </div>
+      <div style="margin-top: 0.5rem;">
+        <a href="#newsletter" class="btn btn-primary" style="width: 100%; justify-content: center;">Join the CareGuide™ Waitlist →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APP BANNER -->
+<div class="app-banner reveal">
+  <div class="app-banner-text">
+    <h3>Sereva on Mobile — Coming Soon</h3>
+    <p>Find doctors, message your CareGuide, and manage your care on the go.</p>
+  </div>
+  <div class="app-badges">
+    <div class="app-badge">
+      <div class="app-badge-icon">🍎</div>
+      <div class="app-badge-text">
+        <span class="soon">Coming soon</span>
+        <span class="store">App Store</span>
+      </div>
+    </div>
+    <div class="app-badge">
+      <div class="app-badge-icon">🤖</div>
+      <div class="app-badge-text">
+        <span class="soon">Coming soon</span>
+        <span class="store">Google Play</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="about-grid">
+    <div class="about-visual reveal">
+      <div class="about-card">
+        <div class="about-quote">"I built Sereva because I have sat across from too many patients who walked in with their guard up — not because they were difficult, but because they had been dismissed before."</div>
+        <div class="about-quote-attr">— Donald Carson, DO · Founder, Sereva · Licensed in 20+ States</div>
+      </div>
+      <div class="about-accent-card">
+        <div class="about-accent-icon">🩺</div>
+        <div class="about-accent-text">
+          <h4>Built by a physician. For every patient.</h4>
+          <p>Sereva was founded by a board-certified osteopathic physician who has practiced across emergency, urgent care, and telehealth settings nationwide.</p>
+        </div>
+      </div>
+    </div>
+    <div class="about-content reveal">
+      <p class="section-eyebrow">About Sereva</p>
+      <h2 class="section-title">Why we <em>exist</em></h2>
+      <p class="section-body">Sereva was built on a belief most people hold privately but rarely say out loud: your doctor should understand you. Not just your symptoms. <em>You.</em></p>
+      <p class="section-body" style="margin-top: 1rem;">We are a national directory of minority physicians, multilingual providers, and LGBTQ+-affirming doctors — paired with our CareGuide™ patient advocate program. Together, they make navigating the healthcare system feel less like a fight and more like having the right person in your corner.</p>
+
+      <div class="about-name-box">
+        <h4>About the Name</h4>
+        <div class="about-name-pronunciation">Sereva</div>
+        <div class="about-name-phonetic">suh · REE · vah</div>
+        <div class="about-name-meaning">From the Latin root <em>servare</em> — to care for, to watch over, to preserve. The same ancient root as "serve" and "deserve." We chose it because we believe everyone deserves care that honors who they are.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOR PROVIDERS -->
+<section class="providers" id="providers">
+  <div class="providers-grid">
+    <div class="reveal">
+      <p class="section-eyebrow">For Physicians</p>
+      <h2 class="section-title">Be found by patients who <em>need you</em> specifically</h2>
+      <p class="section-body">Sereva is not a generic physician directory. Every doctor on this platform chose to be here — because they believe in care that sees the whole patient.</p>
+      <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="#" onclick="openPhysicianSignup(); return false;" class="btn btn-primary">Get Listed Free →</a>
+        <a href="#" onclick="openPhysicianSignup(); return false;" class="btn btn-outline">View Premium Plans</a>
+      </div>
+    </div>
+    <div class="provider-benefits reveal">
+      <div class="provider-benefit">
+        <div class="provider-benefit-icon">🆓</div>
+        <div>
+          <h4>Free to list</h4>
+          <p>Basic listings are completely free. Add your name, specialty, languages, and affirming care focus in minutes.</p>
+        </div>
+      </div>
+      <div class="provider-benefit">
+        <div class="provider-benefit-icon">🎯</div>
+        <div>
+          <h4>Reach patients who are looking for you</h4>
+          <p>Patients searching Sereva are actively seeking a physician who understands their background. These are your patients.</p>
+        </div>
+      </div>
+      <div class="provider-benefit">
+        <div class="provider-benefit-icon">📈</div>
+        <div>
+          <h4>Premium visibility tools</h4>
+          <p>Upgrade to a featured listing, video bio, priority placement in search results, and patient messaging.</p>
+        </div>
+      </div>
+      <div class="provider-benefit">
+        <div class="provider-benefit-icon">🤝</div>
+        <div>
+          <h4>Be part of the movement</h4>
+          <p>Join a network of physicians committed to care that is equitable, inclusive, and culturally aware.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="newsletter" id="newsletter">
+  <h2>Join the Sereva Community</h2>
+  <p>Get early access, doctor spotlights, and health equity news — straight to your inbox.</p>
+  <div class="newsletter-form">
+    <input type="email" id="newsletter-email" placeholder="Your email address">
+    <button onclick="submitNewsletter()">Join Waitlist →</button>
+  </div>
+  <div id="newsletter-success" style="display:none;margin-top:1rem;font-size:0.95rem;color:white;font-weight:500;">✅ You're on the list! We'll be in touch soon.</div>
+  <div id="newsletter-error" style="display:none;margin-top:1rem;font-size:0.88rem;color:rgba(255,255,255,0.7);">Something went wrong. Please try again or email us directly.</div>
+  <p style="font-size: 0.75rem; margin-top: 1rem; opacity: 0.5;">No spam. Unsubscribe anytime. We respect your inbox.</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="nav-logo" style="display: flex; align-items: baseline; gap: 8px;">
+        <span class="nav-logo-word">Sereva</span>
+        <span class="nav-logo-pronun">(suh-REE-vah)</span>
+      </div>
+      <p class="footer-tagline">Care that honors who you are.<br>serevacare.com</p>
+    </div>
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <ul>
+        <li><a href="#">Find a Doctor</a></li>
+        <li><a href="#">CareGuide™</a></li>
+        <li><a href="#">Member Perks</a></li>
+        <li><a href="#">Mobile App</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Physicians</h4>
+      <ul>
+        <li><a href="#">Get Listed</a></li>
+        <li><a href="#">Premium Plans</a></li>
+        <li><a href="#">Become a CareGuide</a></li>
+        <li><a href="#">Partner with Us</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Mission</a></li>
+        <li><a href="#">Press</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Sereva. All rights reserved. serevacare.com</p>
+    <ul class="footer-bottom-links">
+      <li><a href="#">Privacy Policy</a></li>
+      <li><a href="#">Terms of Service</a></li>
+      <li><a href="#" onclick="openManageListing(); return false;">Manage Your Listing</a></li>
+    </ul>
+  </div>
+</footer>
+
+<!-- PHYSICIAN SIGNUP MODAL -->
+<div id="physician-signup-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,17,9,0.85);z-index:1000;overflow-y:auto;padding:40px 20px;">
+  <div style="max-width:680px;margin:0 auto;background:var(--cream);border-radius:28px;overflow:hidden;">
+    <div style="background:var(--dark);padding:36px 40px 28px;position:relative;">
+      <button onclick="closePhysicianSignup()" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.08);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;">✕</button>
+      <p style="font-size:0.72rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--red);margin-bottom:0.6rem;">For Physicians</p>
+      <h2 style="font-family:'Playfair Display',serif;font-size:1.8rem;color:white;font-weight:700;margin-bottom:0.5rem;">Get Listed on Sereva</h2>
+      <p style="font-size:0.88rem;color:rgba(255,255,255,0.45);font-weight:300;line-height:1.55;">Free to join. Be found by patients who are specifically looking for a physician like you.</p>
+    </div>
+    <div style="padding:32px 40px;">
+      <!-- Plan picker -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:2rem;">
+        <div onclick="selectPlan('free')" id="plan-free" style="border:2px solid #2D6A4F;background:#f0f7f4;border-radius:14px;padding:1.1rem;text-align:center;cursor:pointer;transition:all 0.2s;">
+          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#2D6A4F;margin-bottom:0.3rem;">Free</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--dark);">$0</div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;">Basic listing</div>
+        </div>
+        <div onclick="selectPlan('premium')" id="plan-premium" style="border:1.5px solid var(--border);background:white;border-radius:14px;padding:1.1rem;text-align:center;cursor:pointer;transition:all 0.2s;">
+          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);margin-bottom:0.3rem;">Premium</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--dark);">$99<span style="font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:400;color:var(--muted);">/mo</span></div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;">Featured + messaging</div>
+        </div>
+        <div onclick="selectPlan('elite')" id="plan-elite" style="border:1.5px solid var(--border);background:white;border-radius:14px;padding:1.1rem;text-align:center;cursor:pointer;transition:all 0.2s;">
+          <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dark);margin-bottom:0.3rem;">Elite</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--dark);">$249<span style="font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:400;color:var(--muted);">/mo</span></div>
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:0.2rem;">Top placement + video</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">First Name *</label>
+          <input id="phys-first" type="text" placeholder="First name" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Last Name *</label>
+          <input id="phys-last" type="text" placeholder="Last name" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Email *</label>
+          <input id="phys-email" type="email" placeholder="you@practice.com" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">NPI Number *</label>
+          <input id="phys-npi" type="text" placeholder="10-digit NPI" maxlength="10" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Specialty *</label>
+          <select id="phys-specialty" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+            <option value="">Select specialty…</option>
+            <option>Primary Care / Family Medicine</option>
+            <option>Internal Medicine</option>
+            <option>Obstetrics & Gynecology</option>
+            <option>Psychiatry / Mental Health</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">State *</label>
+          <select id="phys-state" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+            <option value="">Select state…</option>
+            <option>Georgia</option><option>Louisiana</option><option>Texas</option><option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">City</label>
+          <input id="phys-city" type="text" placeholder="City" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Languages Spoken</label>
+          <input id="phys-languages" type="text" placeholder="e.g. English, Spanish, Hindi" style="width:100%;padding:0.72rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;outline:none;background:white;">
+        </div>
+        <div style="grid-column:1/-1;display:flex;gap:1.5rem;flex-wrap:wrap;padding:0.75rem 0;">
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;font-weight:500;cursor:pointer;">
+            <input type="checkbox" id="phys-telehealth" style="accent-color:var(--red);width:16px;height:16px;"> Offering telehealth
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;font-weight:500;cursor:pointer;">
+            <input type="checkbox" id="phys-accepting" style="accent-color:var(--red);width:16px;height:16px;"> Accepting new patients
+          </label>
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;font-weight:500;cursor:pointer;">
+            <input type="checkbox" id="phys-lgbtq" style="accent-color:var(--red);width:16px;height:16px;"> LGBTQ+ affirming
+          </label>
+        </div>
+      </div>
+      <button onclick="submitPhysicianSignup()" id="phys-submit-btn" style="width:100%;margin-top:1.25rem;padding:0.9rem;background:var(--red);color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:600;cursor:pointer;">Submit Application →</button>
+      <div id="phys-success" style="display:none;background:#f0f7f4;border:1.5px solid #2D6A4F;border-radius:14px;padding:1.5rem;text-align:center;margin-top:1rem;">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">✅</div>
+        <h4 style="font-size:1rem;font-weight:600;color:#2D6A4F;margin-bottom:0.3rem;">Application received!</h4>
+        <p style="font-size:0.83rem;color:var(--muted);font-weight:300;">We'll review your information and reach out within 3 business days to complete your listing.</p>
+      </div>
+      <div id="phys-error" style="display:none;background:#fff0ee;border:1.5px solid var(--red);border-radius:14px;padding:1rem;text-align:center;margin-top:1rem;">
+        <p style="font-size:0.83rem;color:var(--red);font-weight:500;">Something went wrong. Please try again or email us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b4dcd1d8d8dbf4c7d1c6d1c2d5d7d5c6d19ad7dbd9">[email&#160;protected]</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGE LISTING MODAL -->
+<div id="manage-listing-overlay" style="display:none; position:fixed; inset:0; background:rgba(26,17,9,0.85); z-index:1000; overflow-y:auto; padding: 40px 20px;">
+  <div style="max-width:780px; margin:0 auto; background:var(--cream); border-radius:28px; overflow:hidden;">
+
+    <!-- Modal Header -->
+    <div style="background:var(--dark); padding:40px 40px 32px; position:relative;">
+      <button onclick="closeManageListing()" style="position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.08);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <p style="font-size:0.72rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--red);margin-bottom:0.75rem;">For Physicians</p>
+      <h2 style="font-family:'Playfair Display',serif;font-size:2rem;color:white;font-weight:700;margin-bottom:0.75rem;letter-spacing:-0.02em;">Manage Your Listing</h2>
+      <p style="font-size:0.92rem;color:rgba(255,255,255,0.45);font-weight:300;line-height:1.6;max-width:480px;">Your information was pulled from the public NPI Registry. You can claim it, update it, or have it removed — your choice, always.</p>
+    </div>
+
+    <div style="padding:36px 40px;">
+
+      <!-- Option Cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:2.5rem;">
+        <div onclick="selectOption('claim')" id="opt-claim" style="border:2px solid #2D6A4F;background:#f0f7f4;border-radius:16px;padding:1.5rem 1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;">
+          <div style="font-size:2rem;margin-bottom:0.75rem;">✅</div>
+          <h3 style="font-size:0.9rem;font-weight:600;color:var(--dark);margin-bottom:0.3rem;">Claim Listing</h3>
+          <p style="font-size:0.75rem;color:var(--muted);font-weight:300;line-height:1.4;">Add photo, bio, languages. Free.</p>
+        </div>
+        <div onclick="selectOption('update')" id="opt-update" style="border:1.5px solid var(--border);background:white;border-radius:16px;padding:1.5rem 1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;">
+          <div style="font-size:2rem;margin-bottom:0.75rem;">✏️</div>
+          <h3 style="font-size:0.9rem;font-weight:600;color:var(--dark);margin-bottom:0.3rem;">Update Info</h3>
+          <p style="font-size:0.75rem;color:var(--muted);font-weight:300;line-height:1.4;">Something is incorrect.</p>
+        </div>
+        <div onclick="selectOption('remove')" id="opt-remove" style="border:1.5px solid var(--border);background:white;border-radius:16px;padding:1.5rem 1.25rem;text-align:center;cursor:pointer;transition:all 0.2s;">
+          <div style="font-size:2rem;margin-bottom:0.75rem;">🗑️</div>
+          <h3 style="font-size:0.9rem;font-weight:600;color:var(--dark);margin-bottom:0.3rem;">Remove Me</h3>
+          <p style="font-size:0.75rem;color:var(--muted);font-weight:300;line-height:1.4;">Permanent removal in 5 days.</p>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div style="background:white;border:1px solid var(--border);border-radius:20px;padding:2rem;">
+        <h3 id="modal-form-title" style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--dark);margin-bottom:0.3rem;">Claim Your Listing</h3>
+        <p id="modal-form-sub" style="font-size:0.83rem;color:var(--muted);margin-bottom:1.5rem;font-weight:300;">Add your full profile. Free for all physicians on Sereva.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div>
+            <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">First Name *</label>
+            <input type="text" placeholder="First name" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--dark);background:var(--cream);outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Last Name *</label>
+            <input type="text" placeholder="Last name" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--dark);background:var(--cream);outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">NPI Number *</label>
+            <input type="text" placeholder="10-digit NPI" maxlength="10" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--dark);background:var(--cream);outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Professional Email *</label>
+            <input type="email" placeholder="you@practice.com" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--dark);background:var(--cream);outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">State</label>
+            <select style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--dark);background:var(--cream);outline:none;">
+              <option value="">Select state…</option>
+              <option>Georgia</option><option>Louisiana</option><option>Texas</option><option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Specialty</label>
+            <select style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--dark);background:var(--cream);outline:none;">
+              <option value="">Select specialty…</option>
+              <option>Primary Care / Family Medicine</option>
+              <option>Internal Medicine</option>
+              <option>OB/GYN</option>
+              <option>Psychiatry / Mental Health</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div style="grid-column:1/-1;">
+            <label style="display:block;font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.35rem;">Additional notes (optional)</label>
+            <textarea placeholder="Any corrections, questions, or details for our team…" style="width:100%;padding:0.7rem 0.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.88rem;color:var(--dark);background:var(--cream);outline:none;min-height:80px;resize:vertical;"></textarea>
+          </div>
+        </div>
+
+        <button onclick="submitManageForm()" style="width:100%;margin-top:1.25rem;padding:0.9rem;background:var(--red);color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.95rem;font-weight:600;cursor:pointer;transition:background 0.2s;">Submit Request →</button>
+        <p style="font-size:0.74rem;color:var(--muted);text-align:center;margin-top:0.75rem;font-weight:300;">Questions? Email <a href="/cdn-cgi/l/email-protection#81f3e4eceef7e4c1f2e4f3e4f7e0e2e0f3e4afe2eeec" style="color:var(--red);"><span class="__cf_email__" data-cfemail="0173646c6e776441726473647760626073642f626e6c">[email&#160;protected]</span></a> · Removal processed within 5 business days</p>
+
+        <div id="modal-success" style="display:none;background:#f0f7f4;border:1.5px solid #2D6A4F;border-radius:14px;padding:1.5rem;text-align:center;margin-top:1rem;">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">✅</div>
+          <h4 style="font-size:1rem;font-weight:600;color:#2D6A4F;margin-bottom:0.3rem;">Request received</h4>
+          <p style="font-size:0.83rem;color:var(--muted);font-weight:300;">We'll process your request and send confirmation within 5 business days.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // ─── SUPABASE INIT ───────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://sqyseylbvrxacyfhkihs.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxeXNleWxidnJ4YWN5ZmhraWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMjg2NjYsImV4cCI6MjA4ODYwNDY2Nn0.7OubWTSqN4BGaezsoByK46uKvk0pPsUuGQRO-QAl640';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ─── STATE ───────────────────────────────────────────────────────────────
+  let currentFilter = 'all';
+  let currentSearch = '';
+  let currentOffset = 0;
+  const PAGE_SIZE = 8;
+  let selectedPlan = 'free';
+
+  // ─── SCROLL REVEAL ───────────────────────────────────────────────────────
+  const reveals = document.querySelectorAll('.reveal');
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => revealObserver.observe(el));
+
+  // ─── NAV SCROLL ──────────────────────────────────────────────────────────
+  window.addEventListener('scroll', () => {
+    const nav = document.querySelector('nav');
+    nav.style.boxShadow = window.scrollY > 20 ? '0 4px 24px rgba(0,0,0,0.08)' : 'none';
+  });
+
+  // ─── DOCTOR CARD RENDERER ────────────────────────────────────────────────
+  const avatarBgs = [
+    'linear-gradient(135deg,#2D6A4F 0%,#1A3D2B 100%)',
+    'linear-gradient(135deg,#1B4965 0%,#0D2B40 100%)',
+    'linear-gradient(135deg,#7B4F9E 0%,#3D2050 100%)',
+    'linear-gradient(135deg,#C8553D 0%,#7A2510 100%)',
+    'linear-gradient(135deg,#2C5F6F 0%,#143040 100%)',
+    'linear-gradient(135deg,#5C4A1E 0%,#3A2D0D 100%)',
+  ];
+  const avatarEmoji = ['👩🏾‍⚕️','👨🏽‍⚕️','👩🏻‍⚕️','👨🏿‍⚕️','👩🏽‍⚕️','👨🏼‍⚕️'];
+
+  function renderDoctorCard(doc, idx) {
+    const bg = avatarBgs[idx % avatarBgs.length];
+    const emoji = avatarEmoji[idx % avatarEmoji.length];
+    const credential = doc.credential || 'MD';
+    const langs = doc.languages ? doc.languages.split(',').slice(0,3).map(l =>
+      '<span class="doctor-tag">' + l.trim() + '</span>').join('') : '';
+    const tags = [
+      (doc.telehealth === 'true' || doc.telehealth === true) ? '<span class="doctor-tag">Telehealth</span>' : '',
+      (doc.accepting_patients === 'true' || doc.accepting_patients === true) ? '<span class="doctor-tag">Accepting Patients</span>' : '',
+      (doc.lgbtq_affirming === 'true' || doc.lgbtq_affirming === true) ? '<span class="doctor-tag">LGBTQ+ Affirming</span>' : '',
+    ].filter(Boolean).join('');
+    const imgContent = doc.photo_url
+      ? '<img src="' + doc.photo_url + '" style="width:100%;height:100%;object-fit:cover;">'
+      : emoji;
+    return '<div class="doctor-card">' +
+      '<div class="doctor-card-img" style="background:' + bg + '">' + imgContent + '</div>' +
+      '<div class="doctor-card-body">' +
+        '<div class="doctor-name">Dr. ' + (doc.first_name||'') + ' ' + (doc.last_name||'') + ', ' + credential + '</div>' +
+        '<div class="doctor-specialty">' + (doc.specialty||'') + '</div>' +
+        '<div class="doctor-tags">' + langs + tags + '</div>' +
+        '<div class="doctor-meta">' +
+          '<span class="doctor-location">📍 ' + (doc.city||'') + ', ' + (doc.state||'') + '</span>' +
+          '<span class="doctor-rating">' + (doc.listing_status === 'claimed' ? '✅ Claimed' : '🔵 Listed') + '</span>' +
+        '</div>' +
+      '</div></div>';
+  }
+
+  // ─── LOAD DOCTORS ────────────────────────────────────────────────────────
+  async function loadDoctors(reset) {
+    if (reset === undefined) reset = true;
+    if (reset) currentOffset = 0;
+    const grid = document.getElementById('doctors-grid');
+    const emptyEl = document.getElementById('doctors-empty');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+
+    if (reset) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);"><div style="font-size:1.5rem;margin-bottom:0.5rem;">⏳</div><p>Loading physicians…</p></div>';
+
+    let query = db.from('physicians')
+      .select('*')
+      .eq('status', 'A')
+      .range(currentOffset, currentOffset + PAGE_SIZE - 1)
+      .order('last_name');
+
+    if (currentFilter !== 'all') {
+      if (currentFilter === 'telehealth') {
+        query = query.eq('telehealth', 'true');
+      } else {
+        query = query.ilike('specialty', '%' + currentFilter + '%');
+      }
+    }
+
+    if (currentSearch) {
+      query = query.or('first_name.ilike.%' + currentSearch + '%,last_name.ilike.%' + currentSearch + '%,specialty.ilike.%' + currentSearch + '%,city.ilike.%' + currentSearch + '%');
+    }
+
+    const { data, error } = await query;
+
+    if (error || !data) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--muted);"><p>Unable to load physicians right now. Please try again shortly.</p></div>';
+      return;
+    }
+
+    if (reset) grid.innerHTML = '';
+
+    if (data.length === 0 && currentOffset === 0) {
+      emptyEl.style.display = 'block';
+      loadMoreBtn.style.display = 'none';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    data.forEach(function(doc, i) { grid.innerHTML += renderDoctorCard(doc, currentOffset + i); });
+    currentOffset += data.length;
+    loadMoreBtn.style.display = data.length === PAGE_SIZE ? 'inline-flex' : 'none';
+  }
+
+  function loadMoreDoctors() { loadDoctors(false); }
+
+  function filterDoctors(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+    event.target.classList.add('active');
+    loadDoctors(true);
+  }
+
+  function searchDirectory() {
+    currentSearch = document.getElementById('directory-search').value.trim();
+    loadDoctors(true);
+  }
+
+  function runSearch() {
+    const val = document.getElementById('hero-search-input').value.trim();
+    if (!val) return;
+    document.getElementById('doctors').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(function() {
+      document.getElementById('directory-search').value = val;
+      currentSearch = val;
+      loadDoctors(true);
+    }, 600);
+  }
+
+  // ─── NEWSLETTER ──────────────────────────────────────────────────────────
+  async function submitNewsletter() {
+    const email = document.getElementById('newsletter-email').value.trim();
+    const successEl = document.getElementById('newsletter-success');
+    const errorEl = document.getElementById('newsletter-error');
+    const btn = document.querySelector('.newsletter-form button');
+    successEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    if (!email || !email.includes('@')) {
+      errorEl.textContent = 'Please enter a valid email address.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    btn.textContent = 'Joining…';
+    btn.disabled = true;
+
+    // ── 1. Save to Supabase ──────────────────────────────────────────────
+    const { error: dbError } = await db.from('waitlist').insert([{
+      email: email,
+      source: 'newsletter',
+      created_at: new Date().toISOString()
+    }]);
+
+    // Ignore duplicate email error (code 23505) — still add to Beehiiv
+    if (dbError && dbError.code !== '23505') {
+      errorEl.textContent = 'Something went wrong. Please try again.';
+      errorEl.style.display = 'block';
+      btn.textContent = 'Join Waitlist →';
+      btn.disabled = false;
+      return;
+    }
+
+    // ── 2. Add to Beehiiv ────────────────────────────────────────────────
+    // Note: Beehiiv API requires server-side calls to avoid exposing API key.
+    // Using a lightweight Netlify serverless function as a proxy.
+    // If running locally, Beehiiv step is skipped gracefully.
+    try {
+      await fetch('/.netlify/functions/beehiiv-subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+      });
+    } catch (e) {
+      // Beehiiv call failed silently — Supabase record is still saved
+      console.log('Beehiiv sync skipped (running locally or function not deployed)');
+    }
+
+    document.getElementById('newsletter-email').value = '';
+    btn.textContent = 'Join Waitlist →';
+    btn.disabled = false;
+    successEl.style.display = 'block';
+  }
+
+  // ─── PHYSICIAN SIGNUP ────────────────────────────────────────────────────
+  function openPhysicianSignup() {
+    document.getElementById('physician-signup-overlay').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePhysicianSignup() {
+    document.getElementById('physician-signup-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function selectPlan(plan) {
+    selectedPlan = plan;
+    ['free','premium','elite'].forEach(function(p) {
+      const el = document.getElementById('plan-' + p);
+      if (p === plan) { el.style.border = '2px solid #2D6A4F'; el.style.background = '#f0f7f4'; }
+      else { el.style.border = '1.5px solid var(--border)'; el.style.background = 'white'; }
+    });
+  }
+
+  async function submitPhysicianSignup() {
+    const first = document.getElementById('phys-first').value.trim();
+    const last = document.getElementById('phys-last').value.trim();
+    const email = document.getElementById('phys-email').value.trim();
+    const npi = document.getElementById('phys-npi').value.trim();
+    const specialty = document.getElementById('phys-specialty').value;
+    const state = document.getElementById('phys-state').value;
+
+    if (!first || !last || !email || !npi || !specialty || !state) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+
+    const btn = document.getElementById('phys-submit-btn');
+    btn.textContent = 'Submitting…';
+    btn.disabled = true;
+
+    const { error } = await db.from('physician_signups').insert([{
+      first_name: first,
+      last_name: last,
+      email: email,
+      npi: npi,
+      specialty: specialty,
+      state: state,
+      city: document.getElementById('phys-city').value.trim(),
+      languages: document.getElementById('phys-languages').value.trim(),
+      telehealth: document.getElementById('phys-telehealth').checked,
+      accepting_patients: document.getElementById('phys-accepting').checked,
+      lgbtq_affirming: document.getElementById('phys-lgbtq').checked,
+      plan: selectedPlan,
+      created_at: new Date().toISOString()
+    }]);
+
+    if (error) {
+      document.getElementById('phys-error').style.display = 'block';
+      btn.textContent = 'Submit Application →';
+      btn.disabled = false;
+      return;
+    }
+
+    btn.style.display = 'none';
+    document.getElementById('phys-success').style.display = 'block';
+  }
+
+  document.getElementById('physician-signup-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closePhysicianSignup();
+  });
+
+  // ─── MANAGE LISTING MODAL ────────────────────────────────────────────────
+  function openManageListing() {
+    document.getElementById('manage-listing-overlay').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeManageListing() {
+    document.getElementById('manage-listing-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('manage-listing-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeManageListing();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeManageListing(); closePhysicianSignup(); }
+  });
+
+  const formContent = {
+    claim:  ['Claim Your Listing',  'Add your full profile. Free for all physicians on Sereva.'],
+    update: ['Update Your Information', 'Tell us what needs to be corrected and we will fix it within 5 business days.'],
+    remove: ['Remove Your Listing', 'Submit your request and we will permanently remove your listing within 5 business days.']
+  };
+
+  function selectOption(type) {
+    ['claim','update','remove'].forEach(function(t) {
+      const el = document.getElementById('opt-' + t);
+      if (t === type) { el.style.border = '2px solid #2D6A4F'; el.style.background = '#f0f7f4'; }
+      else { el.style.border = '1.5px solid var(--border)'; el.style.background = 'white'; }
+    });
+    document.getElementById('modal-form-title').textContent = formContent[type][0];
+    document.getElementById('modal-form-sub').textContent = formContent[type][1];
+  }
+
+  function submitManageForm() {
+    document.getElementById('modal-success').style.display = 'block';
+    document.getElementById('modal-success').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ─── INIT ──�
